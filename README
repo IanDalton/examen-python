@@ -1,0 +1,175 @@
+Desarrolla un sistema para una tienda Book&Byte que vende Libros Físicos y eBooks, aplicando completamente POO. El diseño debe incluir herencia múltiple mediante mixins claramente separados por responsabilidad.
+
+1) Productos (4 ptos)
+Reglas generales (clase base)
+
+Todo Producto tiene:
+
+titulo (no vacío)
+
+autor (no vacío)
+
+codigo único alfanumérico de 8–12 caracteres
+
+precio > 0 (float)
+
+Además, todo producto debe poder representarse en una línea legible:
+
+[Tipo] "[titulo]" de [autor] | Código: [codigo] | $[precio]
+
+Mixins (herencia múltiple obligatoria)
+
+Implementa los siguientes mixins y úsalos combinados con las clases concretas:
+
+ImponibleIVA: aporta método precio_con_iva() (IVA 21%).
+
+Puntuable: gestiona calificaciones de 1 a 5 (float).
+
+agregar_rating(valor: float)
+
+rating_promedio() (si no hay ratings, retorna None)
+
+Nota: Las clases concretas deben heredar de Producto y de al menos uno de los mixins, de modo que haya herencia múltiple real (p. ej. class LibroFisico(Producto, ImponibleIVA, Puntuable): ...).
+
+Clases concretas
+
+LibroFisico (Producto + ImponibleIVA + Puntuable)
+Atributos extra:
+
+isbn (13 dígitos, validar EAN-13 con el snippet anexo)
+
+peso_gramos (entero > 0)
+
+Representación legible:
+
+Libro Físico "[titulo]" de [autor] | ISBN: [isbn] | Código: [codigo] | $[precio]
+
+
+EBook (Producto + Puntuable)
+Atributos extra:
+
+formato en {"pdf", "epub", "mobi"}
+
+tam_mb (float > 0)
+
+Representación legible:
+
+eBook "[titulo]" de [autor] | Formato: [formato] | Código: [codigo] | $[precio]
+
+Snippet anexo (validador EAN-13 para isbn)
+@staticmethod
+def validar_ean13(codigo: str) -> bool:
+    """Valida un EAN-13 (usar en ISBN de LibroFisico)."""
+    if len(codigo) != 13 or not codigo.isdigit():
+        return False
+    suma_impar = sum(int(codigo[i]) for i in range(0, 12, 2))
+    suma_par   = sum(int(codigo[i]) for i in range(1, 12, 2))
+    checksum   = (10 - ((suma_impar + suma_par * 3) % 10)) % 10
+    return checksum == int(codigo[-1])
+
+2) Catálogo / Inventario (3 ptos)
+
+Implementa Catalogo que almacene productos en una estructura subyacente eficiente y sin duplicados de codigo. Debe ser un diccionario donde la clave sea el codigo y el valor el objeto Producto.
+
+Métodos requeridos:
+
+agregar(producto)
+
+No pueden existir dos productos con el mismo codigo.
+
+Si el codigo ya existe, rechazar con mensaje:
+Ya existe un producto con el código [codigo].
+
+eliminar(codigo)
+
+Elimina por código; si no existe, mensaje:
+No existe producto con el código [codigo].
+
+buscar(codigo) -> Producto | None
+
+Devuelve el producto o None.
+
+listar_por_precio()
+
+Muestra todos los productos ordenados ascendente por precio.
+
+Si no hay productos:
+No hay productos en el catálogo.
+
+filtrar_baratos(umbral: float)
+
+Muestra solo los productos con precio < umbral, indicando cuántos hay.
+
+Ejemplo de encabezado:
+=== PRODUCTOS CON PRECIO < 15000.0 ===
+
+exportar_csv(ruta: str)
+
+Genera un .csv con columnas:
+Tipo,Titulo,Autor,Codigo,Precio,Extra
+
+Donde Extra contiene según el tipo:
+
+Para Libro Físico: ISBN=[isbn];Peso=[peso_gramos]g
+
+Para eBook: Formato=[formato];Tamaño=[tam_mb]MB
+
+Si falla la escritura:
+Error al escribir el archivo .csv
+
+Si el catálogo está vacío, no genera archivo.
+
+Sugerencias implícitas (no obligatorias en el enunciado)
+
+Para listar_por_precio() la ordenación sugiere el uso de sorted.
+
+Para filtrar_baratos(...) la selección sugiere el uso de filter.
+
+Para exportar_csv(...) la proyección de atributos sugiere el uso de map para formatear filas.
+
+3) Ejemplos de salida (orientativos)
+
+Si el catálogo contiene:
+
+Libro Físico: "Clean Code", precio=22000.0, isbn válido, peso_gramos=450
+
+eBook: "Refactoring", precio=12000.0, formato="epub", tam_mb=5.6
+
+Salida de listar_por_precio():
+
+eBook "Refactoring" de Martin Fowler | Formato: epub | Código: EBK12345 | $12000.0
+Libro Físico "Clean Code" de Robert C. Martin | ISBN: 9780132350884 | Código: LBR00001 | $22000.0
+
+
+Salida de filtrar_baratos(15000.0):
+
+=== PRODUCTOS CON PRECIO < 15000.0 ===
+eBook "Refactoring" de Martin Fowler | Formato: epub | Código: EBK12345 | $12000.0
+Total: 1
+
+
+CSV (líneas de ejemplo):
+
+Tipo,Titulo,Autor,Codigo,Precio,Extra
+eBook,Refactoring,Martin Fowler,EBK12345,12000.0,Formato=epub;Tamaño=5.6MB
+Libro Fisico,Clean Code,Robert C. Martin,LBR00001,22000.0,ISBN=9780132350884;Peso=450g
+
+4) Validaciones y manejo de errores
+
+Todos los strings no vacíos; precio > 0; tam_mb > 0; peso_gramos > 0.
+
+formato en el conjunto permitido.
+
+El isbn de LibroFisico debe ser EAN-13 válido usando el snippet.
+
+Los errores deben manejarse sin provocar la salida abrupta del programa (−2 pts si no).
+
+5) Criterios de evaluación
+
+Aprobado: ≥ 5 puntos.
+
+Eficiencia: uso adecuado de estructuras (diccionario para acceso por codigo).
+
+Estilo: claridad, nombres significativos, no repetir código, POO central (mixins bien delimitados).
+
+Consistencia: respetar nombres de clases/métodos, mensajes y formatos pedidos.
