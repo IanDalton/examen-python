@@ -68,12 +68,15 @@ function FailureLog({ log }) {
               <span className="badge">{entry.count}</span>
               <code>{entry.nodeid}</code>
             </div>
-            {entry.last_message ? (
-              <details>
-                <summary>Último error</summary>
-                <pre>{entry.last_message}</pre>
-              </details>
-            ) : null}
+            {(() => {
+              const feedback = entry.last_feedback || EXPLANATIONS[entry.nodeid];
+              if (!feedback) return null;
+              return (
+                <p className="explanation">
+                  <strong>Última pista:</strong> {feedback}
+                </p>
+              );
+            })()}
           </li>
         ))}
       </ul>
@@ -113,14 +116,13 @@ function ResultsPanel({ result }) {
           {results.map((test) => {
             const phase = test.phase && test.phase !== 'call' ? ` (${test.phase})` : '';
             const key = `${test.nodeid}${phase}`;
-            const explanation = EXPLANATIONS[test.nodeid];
+            const explanation = test.feedback || EXPLANATIONS[test.nodeid];
             return (
               <li key={key} className={test.outcome === 'passed' ? 'ok' : 'fail'}>
                 <div className="test-header">
                   <span>{test.outcome === 'passed' ? '✅' : '❌'}</span>
                   <code>{`${test.nodeid}${phase}`}</code>
                 </div>
-                {test.message ? <pre>{test.message}</pre> : null}
                 {test.outcome !== 'passed' && explanation ? (
                   <p className="explanation">
                     <strong>Posible causa:</strong> {explanation}
@@ -142,6 +144,23 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [log, setLog] = useState({ failures: {} });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem('exam-result');
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      setResult(parsed);
+    } catch (err) {
+      console.warn('No se pudo leer el resultado guardado', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !result) return;
+    window.localStorage.setItem('exam-result', JSON.stringify(result));
+  }, [result]);
 
   const fetchLog = useCallback(async () => {
     try {

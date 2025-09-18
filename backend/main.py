@@ -19,6 +19,26 @@ TESTS_DIR = BASE_DIR / "tests"
 SUBMISSIONS_DIR = BASE_DIR / "submissions"
 LOG_FILE = BASE_DIR / "backend" / "failure_log.json"
 
+FEEDBACK_MAP = {
+    "tests/test_bookbyte_catalogo.py::test_agregar_y_buscar": "Asegurate de que Catalogo.buscar devuelva el mismo objeto que se agregó y None cuando el código no existe.",
+    "tests/test_bookbyte_catalogo.py::test_agregar_duplicado_imprime_mensaje": "Cuando se agrega dos veces el mismo código, el método debe detectar el duplicado y mostrar el mensaje indicado.",
+    "tests/test_bookbyte_catalogo.py::test_eliminar_y_mensajes": "El método eliminar debe informar si el código no existe y realmente quitar el producto cuando sí estaba.",
+    "tests/test_bookbyte_catalogo.py::test_listar_por_precio_vacio": "Si el catálogo está vacío, listar_por_precio debe imprimir el mensaje especial y no fallar.",
+    "tests/test_bookbyte_catalogo.py::test_listar_por_precio_orden": "Revisa que la lista se ordene por precio ascendente y que el formato de cada línea coincida con el esperado.",
+    "tests/test_bookbyte_catalogo.py::test_filtrar_baratos_header_y_total": "La salida debe incluir el encabezado, solo los productos baratos y el total correcto al final.",
+    "tests/test_bookbyte_catalogo.py::test_exportar_csv_crea_archivo_con_campos": "El CSV debe crearse con encabezados exactos y cada fila debe respetar el formato solicitado para eBooks y libros físicos.",
+    "tests/test_bookbyte_catalogo.py::test_exportar_csv_cat_vacio_no_crea_archivo": "No deberías generar archivos cuando el catálogo no tiene productos.",
+    "tests/test_bookbyte_catalogo.py::test_exportar_csv_error_escribe_mensaje": "Ante un error de escritura, captura la excepción y mostrá el mensaje de error correcto.",
+    "tests/test_bookbyte_products.py::test_ean13_validator_exists": "Implementá validar_ean13 en Producto y devolvé True solo cuando el código cumpla el chequeo EAN-13.",
+    "tests/test_bookbyte_products.py::test_librofisico_multiple_inheritance": "LibroFisico debe heredar de Producto, ImponibleIVA y Puntuable para compartir los métodos requeridos.",
+    "tests/test_bookbyte_products.py::test_ebook_inherits_puntuable": "EBook hereda de Producto y Puntuable, pero no de ImponibleIVA; revisá la jerarquía de clases.",
+    "tests/test_bookbyte_products.py::test_validaciones_basicas_producto": "Las validaciones deben lanzar excepciones cuando faltan datos obligatorios o el precio no es positivo.",
+    "tests/test_bookbyte_products.py::test_validaciones_especificas": "Chequeá los campos particulares: formato permitido, tamaño positivo y validación del ISBN y peso.",
+    "tests/test_bookbyte_products.py::test_repr_formato": "El texto de mostrar/str debe incluir tipo, título, autor, código, precio y datos específicos de cada producto.",
+    "tests/test_bookbyte_products.py::test_puntuable_ratings": "Guardá las calificaciones numéricas y devolvé el promedio correcto cuando haya ratings.",
+    "tests/test_bookbyte_products.py::test_imponible_iva": "Implementá precio_con_iva multiplicando por 1.21 para los productos imponibles.",
+}
+
 SUBMISSIONS_DIR.mkdir(exist_ok=True)
 
 app = FastAPI(title="Exam Autograder")
@@ -85,10 +105,20 @@ class ChangeCwd:
 def _load_failure_log() -> dict:
     if LOG_FILE.exists():
         try:
-            return json.loads(LOG_FILE.read_text(encoding="utf-8"))
+            data = json.loads(LOG_FILE.read_text(encoding="utf-8"))
+            failures = data.get("failures")
+            if isinstance(failures, dict):
+                for info in failures.values():
+                    if "last_feedback" not in info and "last_message" in info:
+                        info["last_feedback"] = info["last_message"]
+            return data
         except json.JSONDecodeError:
             pass
     return {"failures": {}}
+
+
+def _build_feedback(nodeid: str) -> str:
+    return FEEDBACK_MAP.get(nodeid, "")
 
 
 def _update_failure_log(failed_results: List[dict]) -> dict:
@@ -96,9 +126,9 @@ def _update_failure_log(failed_results: List[dict]) -> dict:
     failures = data.setdefault("failures", {})
     for item in failed_results:
         node = item["nodeid"]
-        entry = failures.setdefault(node, {"count": 0, "last_message": ""})
+        entry = failures.setdefault(node, {"count": 0, "last_feedback": ""})
         entry["count"] += 1
-        entry["last_message"] = item.get("message", "")
+        entry["last_feedback"] = _build_feedback(node)
     LOG_FILE.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     return data
 
@@ -151,6 +181,18 @@ async def submit_exam(student_name: str = Form(...), file: UploadFile = File(...
 
     log_snapshot = _update_failure_log(failed)
 
+    sanitized_results = []
+    for item in collector.results:
+        entry = {"nodeid": item["nodeid"], "outcome": item["outcome"]}
+        phase = item.get("phase")
+        if phase:
+            entry["phase"] = phase
+        if item["outcome"] != "passed":
+            feedback = _build_feedback(item["nodeid"])
+            if feedback:
+                entry["feedback"] = feedback
+        sanitized_results.append(entry)
+
     return JSONResponse(
         {
             "student": student_name,
@@ -159,7 +201,7 @@ async def submit_exam(student_name: str = Form(...), file: UploadFile = File(...
             "total_tests": total,
             "passed": passed,
             "failed": len(failed),
-            "results": collector.results,
+            "results": sanitized_results,
             "failure_log": log_snapshot,
             "exit_code": exit_code,
         }
