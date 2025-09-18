@@ -1,0 +1,96 @@
+name: Deploy Exam Autograder (FastAPI) to VPS
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'tests/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH (Docker Compose up --build) on Debian
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOMELAB_HOST }}
+          username: ${{ secrets.HOMELAB_USERNAME }}
+          key: ${{ secrets.HOMELAB_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            REPO_FULL="${{ github.repository }}"
+            REPO_NAME="${REPO_FULL##*/}"
+            REPO_DIR="$HOME/repos/$REPO_NAME"
+            GIT_REPO="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${REPO_FULL}.git"
+
+            echo "== Preflight: ensure curl, git =="
+            if ! command -v curl >/dev/null 2>&1; then
+              sudo apt-get update -y
+              sudo apt-get install -y curl
+            fi
+            if ! command -v git >/dev/null 2>&1; then
+              sudo apt-get update -y
+              sudo apt-get install -y git
+            fi
+
+            echo "== Preflight: install Docker Engine if missing =="
+            if ! command -v docker >/dev/null 2>&1; then
+              sudo apt-get update -y
+              sudo apt-get install -y ca-certificates curl gnupg
+              sudo install -m 0755 -d /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              sudo chmod a+r /etc/apt/keyrings/docker.gpg
+              CODENAME="$(. /etc/os-release && echo "$VERSION_CODENAME")"
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian ${CODENAME:-bookworm} stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              sudo apt-get update -y
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              sudo systemctl enable --now docker
+            fi
+
+            echo "== Ensure repo present =="
+            if [ ! -d "$REPO_DIR/.git" ]; then
+              mkdir -p "$REPO_DIR"
+              git clone "$GIT_REPO" "$REPO_DIR"
+            else
+              git -C "$REPO_DIR" remote set-url origin "$GIT_REPO" || true
+            fi
+            cd "$REPO_DIR"
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
+
+            echo "== docker compose up --build (detached) =="
+            sudo docker compose -f docker-compose.yml up -d --build
+
+            echo "== Health check backend (http://127.0.0.1:1234/api/logs) =="
+            set +e
+            HEALTH_OK=0
+            for i in $(seq 1 20); do
+              sleep 2
+              if curl -fsS http://127.0.0.1:1234/api/logs >/dev/null; then
+                echo "Backend healthy (attempt $i)."
+                HEALTH_OK=1
+                break
+              fi
+              echo "Waiting for backend health... ($i)"
+            done
+            if [ "$HEALTH_OK" -ne 1 ]; then
+              echo "Health check FAILED. Showing compose logs:" >&2
+              sudo docker compose logs --no-color --tail 200 || true
+              set -e
+              exit 1
+            fi
+            set -e
+
+            echo "== Prune dangling images (safe) =="
+            sudo docker image prune -f >/dev/null 2>&1 || true
+
+            echo "Deployment complete. Compose services:"
+            sudo docker compose ps

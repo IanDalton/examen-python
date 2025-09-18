@@ -7,7 +7,7 @@ services:
       target: backend
     image: exam-autograder-backend
     ports:
-      - "8000:8000"
+      - "1234:8000"
     volumes:
       - submissions_data:/app/submissions
     environment:
@@ -19,7 +19,7 @@ services:
       target: frontend
     image: exam-portal-frontend
     ports:
-      - "3000:80"
+      - "1235:80"
     depends_on:
       - backend
 
