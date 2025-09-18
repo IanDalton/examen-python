@@ -257,7 +257,7 @@ export default function Home() {
 
       <footer>
         <small>
-          Backend: <code>{BACKEND_URL}</code>
+          Created by Ian Dalton <a href='https://linkedin.com/in/ian-dalton-data'>LinkedIn</a>
         </small>
       </footer>
     </main>
