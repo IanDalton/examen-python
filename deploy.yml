@@ -16,7 +16,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH (Docker Compose up --build)
+      - name: Deploy via SSH (Docker Compose up)
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.HOMELAB_HOST }}
@@ -42,8 +42,22 @@ jobs:
             git reset --hard origin/main
             git clean -fd
 
-            echo "== docker compose up --build (detached) =="
-            docker compose -f docker-compose.yml up -d --build
+            echo "== Select compose command =="
+            if docker compose version >/dev/null 2>&1; then
+              DC='docker compose'
+            elif command -v docker-compose >/dev/null 2>&1; then
+              DC='docker-compose'
+            else
+              echo "Neither 'docker compose' nor 'docker-compose' found in PATH" >&2
+              exit 127
+            fi
+
+            echo "== Build images (legacy builder, no buildx) =="
+            DOCKER_BUILDKIT=0 docker build --target backend -t exam-autograder-backend:latest .
+            DOCKER_BUILDKIT=0 docker build --target frontend -t exam-portal-frontend:latest .
+
+            echo "== ${DC} up (detached) =="
+            ${DC} -f docker-compose.yml up -d
 
             echo "== Health check backend (http://127.0.0.1:1234/api/logs) =="
             set +e
@@ -59,11 +73,11 @@ jobs:
             done
             if [ "$HEALTH_OK" -ne 1 ]; then
               echo "Health check FAILED. Showing compose logs:" >&2
-              docker compose logs --no-color --tail 200 || true
+              ${DC} logs --no-color --tail 200 || true
               set -e
               exit 1
             fi
             set -e
 
             echo "Deployment complete. Compose services:"
-            docker compose ps
+            ${DC} ps

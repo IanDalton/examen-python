@@ -20,6 +20,8 @@ services:
       - "1235:80"
     depends_on:
       - backend
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://examen.iandalton.dev
 
 volumes:
   submissions_data:
