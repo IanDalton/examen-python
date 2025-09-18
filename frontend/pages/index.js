@@ -95,12 +95,14 @@ function ResultsPanel({ result }) {
   }
 
   const { student, score, passed, failed, total_tests, results } = result;
+  const numericScore = typeof score === 'number' ? score : Number(score);
+  const displayScore = Number.isFinite(numericScore) ? numericScore.toFixed(2) : score;
   return (
     <div className="panel">
       <h2>Resultado del examen</h2>
       <div className="score-card">
         <div>
-          <span className="score">{score}</span>
+          <span className="score">{displayScore}</span>
           <span className="over">/100</span>
         </div>
         <div className="meta">
@@ -113,15 +115,16 @@ function ResultsPanel({ result }) {
       <div className="tests">
         <h3>Detalle de tests</h3>
         <ul>
-          {results.map((test) => {
+          {results.map((test, index) => {
+            const nodeid = test.nodeid || `desconocido-${index}`;
             const phase = test.phase && test.phase !== 'call' ? ` (${test.phase})` : '';
-            const key = `${test.nodeid}${phase}`;
-            const explanation = test.feedback || EXPLANATIONS[test.nodeid];
+            const key = `${nodeid}-${test.phase || 'call'}-${index}`;
+            const explanation = test.feedback || EXPLANATIONS[nodeid];
             return (
               <li key={key} className={test.outcome === 'passed' ? 'ok' : 'fail'}>
                 <div className="test-header">
                   <span>{test.outcome === 'passed' ? '✅' : '❌'}</span>
-                  <code>{`${test.nodeid}${phase}`}</code>
+                  <code>{`${nodeid}${phase}`}</code>
                 </div>
                 {test.outcome !== 'passed' && explanation ? (
                   <p className="explanation">

@@ -141,15 +141,16 @@ header p {
 
 .score-card {
   display: flex;
-  align-items: center;
-  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.25rem;
   padding: 1rem 1.25rem;
   border-radius: 16px;
   background: rgba(30, 41, 59, 0.7);
 }
 
 .score {
-  font-size: clamp(2.5rem, 6vw, 3.5rem);
+  font-size: clamp(2.2rem, 5vw, 3.1rem);
   font-weight: 800;
   color: #38bdf8;
 }
@@ -179,7 +180,7 @@ header p {
   padding: 0.75rem 1rem;
   background: rgba(15, 23, 42, 0.55);
   border: 1px solid rgba(148, 163, 184, 0.2);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .tests li.ok {
@@ -193,14 +194,30 @@ header p {
 .test-header,
 .log-header {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
+}
+
+.test-header span,
+.log-header span {
+  flex: 0 0 auto;
+}
+
+.test-header code,
+.log-header code {
+  flex: 1 1 100%;
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 code {
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 0.85rem;
+  overflow-wrap: anywhere;
 }
 
 pre {
@@ -220,7 +237,18 @@ pre {
   background: rgba(56, 189, 248, 0.08);
   border-left: 3px solid rgba(56, 189, 248, 0.6);
   color: #bae6fd;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.log-list .explanation {
+  margin: 0.25rem 0 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.08);
+  border-left: 3px solid rgba(56, 189, 248, 0.4);
+  color: #e0f2fe;
+  font-size: 0.78rem;
   line-height: 1.45;
 }
 
