@@ -73,15 +73,19 @@ function ResultsPanel({ result }) {
       <div className="tests">
         <h3>Detalle de tests</h3>
         <ul>
-          {results.map((test) => (
-            <li key={test.nodeid} className={test.outcome === 'passed' ? 'ok' : 'fail'}>
-              <div className="test-header">
-                <span>{test.outcome === 'passed' ? '✅' : '❌'}</span>
-                <code>{test.nodeid}</code>
-              </div>
-              {test.message ? <pre>{test.message}</pre> : null}
-            </li>
-          ))}
+          {results.map((test) => {
+            const phase = test.phase && test.phase !== 'call' ? ` (${test.phase})` : '';
+            const key = `${test.nodeid}${phase}`;
+            return (
+              <li key={key} className={test.outcome === 'passed' ? 'ok' : 'fail'}>
+                <div className="test-header">
+                  <span>{test.outcome === 'passed' ? '✅' : '❌'}</span>
+                  <code>{`${test.nodeid}${phase}`}</code>
+                </div>
+                {test.message ? <pre>{test.message}</pre> : null}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
