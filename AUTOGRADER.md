@@ -12,6 +12,17 @@ submissions/    # Carpeta generada con las entregas (ignoradas por git)
 
 ## Puesta en marcha
 
+### Opción recomendada: Docker
+
+1. Construye las imágenes y levanta ambos servicios (FastAPI + Nginx) con Docker Compose:
+   ```bash
+   docker compose up --build
+   ```
+   Esto expone el backend en `http://localhost:8000` y la interfaz estática en `http://localhost:3000`.
+   Las entregas se guardan en un volumen persistente llamado `submissions_data`.
+
+### Opción manual
+
 1. **Backend**
    ```bash
    cd backend
