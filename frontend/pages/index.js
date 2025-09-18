@@ -4,6 +4,43 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
+const EXPLANATIONS = {
+  'tests/test_bookbyte_catalogo.py::test_agregar_y_buscar':
+    'Asegurate de que Catalogo.buscar devuelva el mismo objeto que se agregó y None cuando el código no existe.',
+  'tests/test_bookbyte_catalogo.py::test_agregar_duplicado_imprime_mensaje':
+    'Cuando se agrega dos veces el mismo código, el método debe detectar el duplicado y mostrar el mensaje indicado.',
+  'tests/test_bookbyte_catalogo.py::test_eliminar_y_mensajes':
+    'El método eliminar debe informar si el código no existe y realmente quitar el producto cuando sí estaba.',
+  'tests/test_bookbyte_catalogo.py::test_listar_por_precio_vacio':
+    'Si el catálogo está vacío, listar_por_precio debe imprimir el mensaje especial y no fallar.',
+  'tests/test_bookbyte_catalogo.py::test_listar_por_precio_orden':
+    'Revisa que la lista se ordene por precio ascendente y que el formato de cada línea coincida con el esperado.',
+  'tests/test_bookbyte_catalogo.py::test_filtrar_baratos_header_y_total':
+    'La salida debe incluir el encabezado, solo los productos baratos y el total correcto al final.',
+  'tests/test_bookbyte_catalogo.py::test_exportar_csv_crea_archivo_con_campos':
+    'El CSV debe crearse con encabezados exactos y cada fila debe respetar el formato solicitado para eBooks y libros físicos.',
+  'tests/test_bookbyte_catalogo.py::test_exportar_csv_cat_vacio_no_crea_archivo':
+    'No deberías generar archivos cuando el catálogo no tiene productos.',
+  'tests/test_bookbyte_catalogo.py::test_exportar_csv_error_escribe_mensaje':
+    'Ante un error de escritura, captura la excepción y mostrá el mensaje de error correcto.',
+  'tests/test_bookbyte_products.py::test_ean13_validator_exists':
+    'Implementá validar_ean13 en Producto y devolvé True solo cuando el código cumpla el chequeo EAN-13.',
+  'tests/test_bookbyte_products.py::test_librofisico_multiple_inheritance':
+    'LibroFisico debe heredar de Producto, ImponibleIVA y Puntuable para compartir los métodos requeridos.',
+  'tests/test_bookbyte_products.py::test_ebook_inherits_puntuable':
+    'EBook hereda de Producto y Puntuable, pero no de ImponibleIVA; revisá la jerarquía de clases.',
+  'tests/test_bookbyte_products.py::test_validaciones_basicas_producto':
+    'Las validaciones deben lanzar excepciones cuando faltan datos obligatorios o el precio no es positivo.',
+  'tests/test_bookbyte_products.py::test_validaciones_especificas':
+    'Chequeá los campos particulares: formato permitido, tamaño positivo y validación del ISBN y peso.',
+  'tests/test_bookbyte_products.py::test_repr_formato':
+    'El texto de mostrar/str debe incluir tipo, título, autor, código, precio y datos específicos de cada producto.',
+  'tests/test_bookbyte_products.py::test_puntuable_ratings':
+    'Guardá las calificaciones numéricas y devolvé el promedio correcto cuando haya ratings.',
+  'tests/test_bookbyte_products.py::test_imponible_iva':
+    'Implementá precio_con_iva multiplicando por 1.21 para los productos imponibles.',
+};
+
 function FailureLog({ log }) {
   const entries = useMemo(() => {
     if (!log || !log.failures) return [];
@@ -76,6 +113,7 @@ function ResultsPanel({ result }) {
           {results.map((test) => {
             const phase = test.phase && test.phase !== 'call' ? ` (${test.phase})` : '';
             const key = `${test.nodeid}${phase}`;
+            const explanation = EXPLANATIONS[test.nodeid];
             return (
               <li key={key} className={test.outcome === 'passed' ? 'ok' : 'fail'}>
                 <div className="test-header">
@@ -83,6 +121,11 @@ function ResultsPanel({ result }) {
                   <code>{`${test.nodeid}${phase}`}</code>
                 </div>
                 {test.message ? <pre>{test.message}</pre> : null}
+                {test.outcome !== 'passed' && explanation ? (
+                  <p className="explanation">
+                    <strong>Posible causa:</strong> {explanation}
+                  </p>
+                ) : null}
               </li>
             );
           })}
