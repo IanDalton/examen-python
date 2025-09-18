@@ -21,7 +21,7 @@ services:
     depends_on:
       - backend
     environment:
-      - NEXT_PUBLIC_BACKEND_URL=http://examen.iandalton.dev
+      - NEXT_PUBLIC_BACKEND_URL=https://dev.ibalton.com
 
 volumes:
   submissions_data:
