@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: .
+      target: backend
+    image: exam-autograder-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - submissions_data:/app/submissions
+    environment:
+      - PYTHONPATH=/app
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+    image: exam-portal-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  submissions_data:
