@@ -167,7 +167,7 @@ export default function Home() {
 
   const fetchLog = useCallback(async () => {
     try {
-      const resp = await fetch(`${BACKEND_URL}/api/logs`);
+      const resp = await fetch(`${BACKEND_URL}/api2/logs`);
       if (!resp.ok) throw new Error('No se pudo obtener el historial');
       const data = await resp.json();
       setLog(data);
@@ -200,7 +200,7 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/submit`, {
+      const response = await fetch(`${BACKEND_URL}/api2/submit`, {
         method: 'POST',
         body: formData,
       });
